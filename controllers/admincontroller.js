@@ -1,55 +1,77 @@
-const User = require('../models/user');
-const walletpay = require('../models/wallet');
+// controllers/admincontroller.js
 
-// Get total balances of all users
+const Flag = require('../models/flags'); // adjust path if needed
+const Walletpay = require('../models/wallet'); // adjust path if needed
+const User = require('../models/user'); // adjust path if needed
+
+
+exports.getFlags = async (req, res) => {
+  try {
+    const flags = await Flag.find().populate('user').populate('transaction');
+    res.status(200).json(flags);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch flags' });
+  }
+};
+
 exports.getTotalBalances = async (req, res) => {
   try {
     const users = await User.find();
-    const totals = {};
-
-    users.forEach(user => {
-      for (let [currency, value] of user.balances) {
-        totals[currency] = (totals[currency] || 0) + value;
-      }
-    });
-
-    res.json({ total: totals });
+    const totalBalance = users.reduce((sum, user) => sum + (user.balance || 0), 0);
+    res.status(200).json({ totalBalance });
   } catch (err) {
-    res.status(500).json({ message: 'Error calculating totals' });
+    res.status(500).json({ error: 'Failed to calculate total balances' });
   }
 };
 
-// Get top users by balance and transaction count
 exports.getTopUsers = async (req, res) => {
   try {
-    const users = await User.find();
-
-    const topByBalance = users.map(u => ({
-      name: u.name,
-      email: u.email,
-      balance: [...u.balances.values()].reduce((a, b) => a + b, 0)
-    }))
-    .sort((a, b) => b.balance - a.balance)
-    .slice(0, 5);
-
-    const txCounts = await walletpay.aggregate([
-      { $match: { sender: { $ne: null } } },
-      { $group: { _id: "$sender", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
-    ]);
-
-    const topByTx = await Promise.all(txCounts.map(async tx => {
-      const user = await User.findById(tx._id);
-      return {
-        name: user?.name || 'N/A',
-        email: user?.email || 'N/A',
-        transactions: tx.count
-      };
-    }));
-
-    res.json({ topByBalance, topByTx });
+    const topUsers = await User.find().sort({ balance: -1 }).limit(5);
+    res.status(200).json(topUsers);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching top users' });
+    res.status(500).json({ error: 'Failed to fetch top users' });
   }
 };
+
+exports.softDeleteUser = async (req, res) => {
+    try {
+      const userId = req.params.id;
+  
+      // Option 1: If using a soft-delete field (like isDeleted)
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { isDeleted: true },
+        { new: true }
+      );
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      res.status(200).json({ message: 'User soft-deleted successfully', user });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to soft-delete user' });
+    }
+  };
+  
+
+exports.softDeleteTransaction = async (req, res) => {
+  try {
+    const transactionId = req.params.id;
+
+    const transaction = await Wallet.findByIdAndUpdate(
+      transactionId,
+      { isDeleted: true },
+      { new: true }
+    );
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    res.status(200).json({ message: 'Transaction soft-deleted successfully', transaction });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to soft-delete transaction' });
+  }
+};
+
