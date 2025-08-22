@@ -3,7 +3,7 @@
 A secure and modular backend for a Digital Wallet System built using Node.js, Express, and MongoDB. This project supports user registration, login, deposits, withdrawals, transfers, fraud detection, and admin reporting APIs.
 
 🚀 **Deployed at:**
-GitHub: [https://github.com/Saurabhanitmahto/infollion-assignment-wallet](https://github.com/Saurabhanitmahto/infollion-assignment-wallet)
+GitHub: [https://github.com/Saurabhanitmahto/Digital-Wallet](https://github.com/Saurabhanitmahto/Digital-Wallet)
 
 ## ✅ Features
 
